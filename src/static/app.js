@@ -472,6 +472,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Close all share dropdowns when clicking outside
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".share-dropdown").forEach((dropdown) => {
+      dropdown.classList.add("hidden");
+    });
+  });
+
+  // Function to open or close the share dropdown for an activity
+  function shareActivity(name, details, dropdown) {
+    // Use Web Share API if available (mobile browsers)
+    if (navigator.share) {
+      navigator
+        .share({
+          title: name,
+          text: `Check out "${name}" at Mergington High School! ${details.description}`,
+          url: window.location.href,
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // Toggle dropdown visibility, closing any others first
+    const isHidden = dropdown.classList.contains("hidden");
+    document.querySelectorAll(".share-dropdown").forEach((d) => {
+      d.classList.add("hidden");
+    });
+    if (isHidden) {
+      dropdown.classList.remove("hidden");
+    }
+  }
+
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
@@ -569,6 +600,17 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-container">
+        <button class="share-button" aria-label="Share this activity">
+          <span class="share-icon">🔗</span> Share
+        </button>
+        <div class="share-dropdown hidden">
+          <a class="share-option share-twitter" href="#" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+          <a class="share-option share-facebook" href="#" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a class="share-option share-whatsapp" href="#" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <button class="share-option share-copy">📋 Copy Link</button>
+        </div>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -586,6 +628,44 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add share button functionality
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareDropdown = activityCard.querySelector(".share-dropdown");
+    shareButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      shareActivity(name, details, shareDropdown);
+    });
+    shareDropdown.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    // Set up share links
+    const shareText = `Check out "${name}" at Mergington High School! ${details.description}`;
+    const shareUrl = window.location.href;
+
+    activityCard.querySelector(".share-twitter").href =
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    activityCard.querySelector(".share-facebook").href =
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+    activityCard.querySelector(".share-whatsapp").href =
+      `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + shareUrl)}`;
+
+    activityCard.querySelector(".share-copy").addEventListener("click", () => {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        const copyBtn = activityCard.querySelector(".share-copy");
+        copyBtn.textContent = "✅ Copied!";
+        setTimeout(() => {
+          copyBtn.textContent = "📋 Copy Link";
+        }, 2000);
+      }).catch(() => {
+        const copyBtn = activityCard.querySelector(".share-copy");
+        copyBtn.textContent = "❌ Copy failed";
+        setTimeout(() => {
+          copyBtn.textContent = "📋 Copy Link";
+        }, 2000);
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
